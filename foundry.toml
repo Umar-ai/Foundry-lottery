@@ -2,5 +2,13 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-
+remappings = [
+    '@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/',
+]
+[fmt]
+line_length = 120         # Default is 80 (too short!)
+tab_width = 4            # Standard for most devs
+bracket_spacing = true   # Adds space: { item } instead of {item}
+int_types = "long"       # Keeps uint256 instead of shortening to uint
+multiline_functions_inner_brackets = true
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
