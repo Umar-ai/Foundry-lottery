@@ -11,4 +11,5 @@ tab_width = 4            # Standard for most devs
 bracket_spacing = true   # Adds space: { item } instead of {item}
 int_types = "long"       # Keeps uint256 instead of shortening to uint
 multiline_functions_inner_brackets = true
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+[lint]
+lint_on_build = false

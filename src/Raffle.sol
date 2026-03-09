@@ -5,11 +5,11 @@ import { VRFConsumerBaseV2Plus } from "@chainlink/contracts/src/v0.8/vrf/dev/VRF
 import { VRFV2PlusClient } from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
 contract Raffle is VRFConsumerBaseV2Plus {
-    error Raffle__NotEnougEntraceFee();
+    error Raffle__NotEnoughEntraceFee();
     error Raffle__NotEnoughTimePassed();
     error Raffle__TransferFailed();
     error Raffle__NotOpen();
-    error Raffle__UpKeepNotNeeded(uint256 balance,uint256 length,uint256 state);
+    error Raffle__UpKeepNotNeeded(uint256 balance, uint256 length, uint256 state);
 
     enum RaffleState {
         OPEN,
@@ -54,7 +54,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
             revert Raffle__NotOpen();
         }
         if (msg.value < i_entrancefee) {
-            revert Raffle__NotEnougEntraceFee();
+            revert Raffle__NotEnoughEntraceFee();
         }
         s_players.push(payable(msg.sender));
         emit RaffleEntered(msg.sender);
@@ -84,9 +84,9 @@ contract Raffle is VRFConsumerBaseV2Plus {
     )
         external
     {
-        (bool success,)=checkUpkeep("");
-        if(!success){
-            revert Raffle__UpKeepNotNeeded(address(this).balance,s_players.length,uint256(s_rafflestate));
+        (bool success,) = checkUpkeep("");
+        if (!success) {
+            revert Raffle__UpKeepNotNeeded(address(this).balance, s_players.length, uint256(s_rafflestate));
         }
         s_rafflestate = RaffleState.CALCULATING;
         VRFV2PlusClient.RandomWordsRequest memory request = VRFV2PlusClient.RandomWordsRequest({
@@ -105,13 +105,13 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     function fulfillRandomWords(uint256, uint256[] calldata randomWords) internal override {
         uint256 winnerIndex = randomWords[0] % s_players.length;
-        address payable RecentWinner = s_players[winnerIndex];
-        s_recentwinner = RecentWinner;
+        address payable recentWinner = s_players[winnerIndex];
+        s_recentwinner = recentWinner;
         s_rafflestate = RaffleState.OPEN;
         s_players = new address payable[](0);
         s_lasttimestamp = block.timestamp;
 
-        (bool success,) = RecentWinner.call{ value: address(this).balance }("");
+        (bool success,) = recentWinner.call{ value: address(this).balance }("");
         if (!success) {
             revert Raffle__TransferFailed();
         }
@@ -119,11 +119,23 @@ contract Raffle is VRFConsumerBaseV2Plus {
     }
 
     // getters
-    function Minimum_amount_to_raffle() external view returns (uint256) {
+    function getMinimumAmountToRaffle() external view returns (uint256) {
         return i_entrancefee;
     }
 
-    function lottery_interval() external view returns (uint256) {
+    function getLotteryIntervalGetter() external view returns (uint256) {
         return i_lotteryInterval;
+    }
+
+    function getRaffleState() external view returns (RaffleState) {
+        return s_rafflestate;
+    }
+
+    function getRaffleParticipantsArray() external view returns (address payable[] memory) {
+        return s_players;
+    }
+
+    function getPlayerByIndex(uint256 playerIndex) external view returns (address) {
+        return s_players[playerIndex];
     }
 }
