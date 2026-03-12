@@ -4,12 +4,17 @@ out = "out"
 libs = ["lib"]
 remappings = [
     '@chainlink/contracts/=lib/chainlink-brownie-contracts/contracts/',
+    '@solmate=lib/solmate/src/'
 ]
 [fmt]
-line_length = 120         # Default is 80 (too short!)
+line_length = 150         # Default is 80 (too short!)
 tab_width = 4            # Standard for most devs
 bracket_spacing = true   # Adds space: { item } instead of {item}
 int_types = "long"       # Keeps uint256 instead of shortening to uint
 multiline_functions_inner_brackets = true
 [lint]
 lint_on_build = false
+fs_permissions = [
+    { access = "read", path = "./broadcast" },
+    { access = "read", path = "./reports" },
+]

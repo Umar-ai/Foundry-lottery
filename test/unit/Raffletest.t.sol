@@ -22,6 +22,7 @@ contract Raffletest is Test {
     address public NEW_PLAYER = makeAddr("newUser");
     uint256 public constant STARTING_BALANCE = 10 ether;
     uint256 public constant ENTRACE_FEE = 1 ether;
+    uint256 public constant INTERVAL = 30;
 
     function setUp() public {
         deployRaffle deployer = new deployRaffle();
@@ -31,7 +32,7 @@ contract Raffletest is Test {
         lotteryinterval = config.lotteryinterval;
         vrfCordinatoraddress = config.vrfCordinatoraddress;
         keyHash = config.keyHash;
-        subscriptionid = config.subscriptionid;
+        subscriptionid = config.subscriptionId;
         callbackgaslimit = config.callbackgaslimit;
         vm.deal(NEW_PLAYER, STARTING_BALANCE);
     }
@@ -64,6 +65,20 @@ contract Raffletest is Test {
         vm.expectEmit(true, false, false, false, address(raffle));
         emit RaffleEntered(NEW_PLAYER);
 
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+    }
+
+    function testDoesnotAllowPlayerToEnterRaffleWhileRaffleIsCalculating() public {
+        //arrange
+        vm.prank(NEW_PLAYER);
+        //act
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+        vm.warp(block.timestamp + INTERVAL + 30);
+        vm.roll(block.number + 1);
+        raffle.performUpkeep("");
+        //assert
+        vm.expectRevert(Raffle.Raffle__NotOpen.selector);
+        vm.prank(NEW_PLAYER);
         raffle.enterRaffle{ value: ENTRACE_FEE }();
     }
 }

@@ -44,7 +44,6 @@ contract Raffle is VRFConsumerBaseV2Plus {
         i_keyhash = keyHash;
         i_subscriptionid = _subscriptionid;
         i_callbackgaslimit = _callbackgaslimit;
-
         s_lasttimestamp = block.timestamp;
         s_rafflestate = RaffleState.OPEN;
     }
@@ -99,7 +98,6 @@ contract Raffle is VRFConsumerBaseV2Plus {
             extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({ nativePayment: false }))
         });
 
-        // uint256 requestid = s_vrfCoordinator.requestRandomWords(request);
         s_vrfCoordinator.requestRandomWords(request);
     }
 
