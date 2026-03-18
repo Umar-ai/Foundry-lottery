@@ -12,3 +12,8 @@ docs/
 
 # Dotenv file
 .env
+
+//Coverage Report
+coverage.txt
+
+

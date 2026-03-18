@@ -73,12 +73,69 @@ contract Raffletest is Test {
         vm.prank(NEW_PLAYER);
         //act
         raffle.enterRaffle{ value: ENTRACE_FEE }();
-        vm.warp(block.timestamp + INTERVAL + 30);
+        vm.warp(block.timestamp + INTERVAL + 1);
         vm.roll(block.number + 1);
         raffle.performUpkeep("");
         //assert
         vm.expectRevert(Raffle.Raffle__NotOpen.selector);
         vm.prank(NEW_PLAYER);
         raffle.enterRaffle{ value: ENTRACE_FEE }();
+    }
+
+    function testCheckUpKeepReturnFalsesWhenEnoughTimeIsNotPassed() public {
+        //arragne
+        vm.prank(NEW_PLAYER);
+        //act
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+        (bool isCheckUpKeepPassed,) = raffle.checkUpkeep("");
+        //assert
+        assert(!isCheckUpKeepPassed);
+    }
+
+    function testCheckUpKeepReturnsFalseWhenIfRaffleIsNotOpen() public {
+        //arrange
+        vm.prank(NEW_PLAYER);
+        //act
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+        vm.warp(block.timestamp + INTERVAL + 1);
+        vm.roll(block.number + 1);
+        raffle.performUpkeep("");
+        (bool isPerformUpNeeded,) = raffle.checkUpkeep("");
+        //assert
+        assert(!isPerformUpNeeded);
+    }
+
+    function testCheckUpKeepReturnsTrueWhenConditionsAreMet() public {
+        //arrange
+        vm.prank(NEW_PLAYER);
+        //act
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+        vm.warp(block.timestamp + INTERVAL + 1);
+        vm.roll(block.number + 1);
+        (bool isPerformUpNeeded,) = raffle.checkUpkeep("");
+
+        //assert
+        assertEq(isPerformUpNeeded, true);
+    }
+
+    function testPerformUpKeepRevertsWhenEnoughTimeNotPassed() public {
+        //arrange
+        uint256 currentBalance=0;
+        uint256 totalPlayers=0;
+        Raffle.RaffleState rState=raffle.getRaffleState();
+        vm.prank(NEW_PLAYER);
+        //act
+        currentBalance=currentBalance+ENTRACE_FEE;
+        totalPlayers=1;
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Raffle.Raffle__UpKeepNotNeeded.selector,
+                currentBalance, // balance
+                totalPlayers, // length
+                rState // state
+            )
+        );
+        raffle.performUpkeep("");
     }
 }
