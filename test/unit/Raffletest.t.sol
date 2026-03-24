@@ -1,10 +1,12 @@
 // SPDX-License-Identifier:UNLICENSE
 pragma solidity ^0.8.19;
 
-import { Test } from "forge-std/Test.sol";
+import { Test, console } from "forge-std/Test.sol";
 import { deployRaffle } from "../../script/deployRaffle.s.sol";
 import { HelperConfig } from "../../script/HelperConfig.s.sol";
 import { Raffle } from "src/Raffle.sol";
+import { VRFCoordinatorV2_5Mock } from "../../lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 contract Raffletest is Test {
     Raffle public raffle;
@@ -120,13 +122,13 @@ contract Raffletest is Test {
 
     function testPerformUpKeepRevertsWhenEnoughTimeNotPassed() public {
         //arrange
-        uint256 currentBalance=0;
-        uint256 totalPlayers=0;
-        Raffle.RaffleState rState=raffle.getRaffleState();
+        uint256 currentBalance = 0;
+        uint256 totalPlayers = 0;
+        Raffle.RaffleState rState = raffle.getRaffleState();
         vm.prank(NEW_PLAYER);
         //act
-        currentBalance=currentBalance+ENTRACE_FEE;
-        totalPlayers=1;
+        currentBalance = currentBalance + ENTRACE_FEE;
+        totalPlayers = 1;
         raffle.enterRaffle{ value: ENTRACE_FEE }();
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -137,5 +139,68 @@ contract Raffletest is Test {
             )
         );
         raffle.performUpkeep("");
+    }
+
+    modifier raffleEntered() {
+        vm.prank(NEW_PLAYER);
+        //act
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+        vm.warp(block.timestamp + INTERVAL + 1);
+        vm.roll(block.number + 1);
+        _;
+    }
+
+    function testPerfromUpKeepUpdatesRaffleStateAndEmitRequestId() public raffleEntered {
+        //arrange
+        vm.prank(NEW_PLAYER);
+        //act
+        raffle.enterRaffle{ value: ENTRACE_FEE }();
+        vm.warp(block.timestamp + INTERVAL + 1);
+        vm.roll(block.number + 1);
+        vm.recordLogs();
+        raffle.performUpkeep("");
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+        Raffle.RaffleState rState = raffle.getRaffleState();
+        //assert
+        assert(uint256(requestId) > 0);
+        assert(uint256(rState) == 1);
+    }
+
+    function testFullFillRandomWordsCanOnlyBeCalledAfterPerformUpKeep(uint256 _reqId) public raffleEntered {
+        vm.expectRevert(VRFCoordinatorV2_5Mock.InvalidRequest.selector);
+        VRFCoordinatorV2_5Mock(vrfCordinatoraddress).fulfillRandomWords(_reqId, address(raffle));
+    }
+
+    function testCallFullFillRandomWordsAndMoneySentToWinner() public raffleEntered {
+        // arrange
+        uint256 startingIndex = 1;
+        uint256 additionalEntrants = 3;
+        uint256 startingTimeStamps = raffle.getLastTimeStamps();
+
+        for (uint256 i = startingIndex; i < startingIndex + additionalEntrants; i++) {
+            address newPlayer = address(uint160(i));
+            hoax(newPlayer, STARTING_BALANCE);
+            raffle.enterRaffle{ value: ENTRACE_FEE }();
+        }
+        // act
+        vm.warp(block.timestamp + INTERVAL + 1);
+        vm.roll(block.number + 1);
+        vm.recordLogs();
+        raffle.performUpkeep("");
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+        VRFCoordinatorV2_5Mock(vrfCordinatoraddress).fulfillRandomWords(uint256(requestId), address(raffle));
+        //assert
+        Raffle.RaffleState rState = raffle.getRaffleState();
+        address recentWinner = raffle.getRecentWinner();
+        uint256 endingTimeStamps = raffle.getLastTimeStamps();
+        uint256 winnerBalance = recentWinner.balance;
+        uint256 prize = (startingIndex + additionalEntrants) * ENTRACE_FEE;
+        uint256 contractBalance = raffle.getContractBalance();
+        console.log(contractBalance);
+        assert(uint256(rState) == 0);
+        assertEq(winnerBalance, (STARTING_BALANCE - ENTRACE_FEE) + prize);
+        assert(endingTimeStamps > startingTimeStamps);
     }
 }

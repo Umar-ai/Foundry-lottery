@@ -45,7 +45,7 @@ contract FundSubscription is Script, CodeConstants {
     function fundSubscription(uint256 _subId, address _vrfCoordinatorAddress, address _linkToken) public {
         if (block.chainid == LOCAL_CHAIN_ID) {
             vm.startBroadcast();
-            VRFCoordinatorV2_5Mock(_vrfCoordinatorAddress).fundSubscription(_subId, FUND_AMOUNT);
+            VRFCoordinatorV2_5Mock(_vrfCoordinatorAddress).fundSubscription(_subId, FUND_AMOUNT * 100);
             vm.stopBroadcast();
         } else {
             vm.startBroadcast();
