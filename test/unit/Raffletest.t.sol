@@ -25,6 +25,7 @@ contract Raffletest is Test {
     uint256 public constant STARTING_BALANCE = 10 ether;
     uint256 public constant ENTRACE_FEE = 1 ether;
     uint256 public constant INTERVAL = 30;
+    uint256 public constant ANVIL_CHAIN_ID = 31337;
 
     function setUp() public {
         deployRaffle deployer = new deployRaffle();
@@ -122,7 +123,7 @@ contract Raffletest is Test {
 
     function testPerformUpKeepRevertsWhenEnoughTimeNotPassed() public {
         //arrange
-        uint256 currentBalance = 0;
+        uint256 currentBalance = address(raffle).balance;
         uint256 totalPlayers = 0;
         Raffle.RaffleState rState = raffle.getRaffleState();
         vm.prank(NEW_PLAYER);
@@ -130,14 +131,7 @@ contract Raffletest is Test {
         currentBalance = currentBalance + ENTRACE_FEE;
         totalPlayers = 1;
         raffle.enterRaffle{ value: ENTRACE_FEE }();
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Raffle.Raffle__UpKeepNotNeeded.selector,
-                currentBalance, // balance
-                totalPlayers, // length
-                rState // state
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(Raffle.Raffle__UpKeepNotNeeded.selector, currentBalance, totalPlayers, rState));
         raffle.performUpkeep("");
     }
 
@@ -167,12 +161,19 @@ contract Raffletest is Test {
         assert(uint256(rState) == 1);
     }
 
-    function testFullFillRandomWordsCanOnlyBeCalledAfterPerformUpKeep(uint256 _reqId) public raffleEntered {
+    modifier skipFork() {
+        if (block.chainid != ANVIL_CHAIN_ID) {
+            return;
+        }
+        _;
+    }
+
+    function testFullFillRandomWordsCanOnlyBeCalledAfterPerformUpKeep(uint256 _reqId) public skipFork {
         vm.expectRevert(VRFCoordinatorV2_5Mock.InvalidRequest.selector);
         VRFCoordinatorV2_5Mock(vrfCordinatoraddress).fulfillRandomWords(_reqId, address(raffle));
     }
 
-    function testCallFullFillRandomWordsAndMoneySentToWinner() public raffleEntered {
+    function testCallFullFillRandomWordsAndMoneySentToWinner() public raffleEntered skipFork {
         // arrange
         uint256 startingIndex = 1;
         uint256 additionalEntrants = 3;

@@ -14,20 +14,20 @@ contract deployRaffle is Script {
         HelperConfig.NetworkConfig memory config = helperConfig.getConfig();
         if (config.subscriptionId == 0) {
             CreateSubscription createSubscription = new CreateSubscription();
-            (config.subscriptionId, config.vrfCordinatoraddress) = createSubscription.createSubscription(config.vrfCordinatoraddress);
+            (config.subscriptionId, config.vrfCordinatoraddress) = createSubscription.createSubscription(config.vrfCordinatoraddress,config.account);
 
             FundSubscription fundSubscription = new FundSubscription();
-            fundSubscription.fundSubscription(config.subscriptionId, config.vrfCordinatoraddress, config.link);
+            fundSubscription.fundSubscription(config.subscriptionId, config.vrfCordinatoraddress, config.link,config.account);
         }
 
-        vm.startBroadcast();
+        vm.startBroadcast(config.account);
         Raffle raffle = new Raffle(
             config.entrancefee, config.lotteryinterval, config.vrfCordinatoraddress, config.keyHash, config.subscriptionId, config.callbackgaslimit
         );
         vm.stopBroadcast();
 
         AddConsumer addConsumer = new AddConsumer();
-        addConsumer.addConsume(address(raffle), config.vrfCordinatoraddress, config.subscriptionId);
+        addConsumer.addConsume(address(raffle), config.vrfCordinatoraddress, config.subscriptionId,config.account);
         return (raffle, helperConfig);
     }
 }
