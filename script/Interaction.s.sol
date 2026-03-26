@@ -55,6 +55,9 @@ contract FundSubscription is Script, CodeConstants {
             vm.stopBroadcast();
         }
     }
+    function getFundAmount()public pure returns(uint256){
+        return FUND_AMOUNT*100;
+    }
 
     function run() public {
         fundSubscriptionUsingConfig();
@@ -80,4 +83,5 @@ contract AddConsumer is Script {
         address mostRecentDeployedContract = DevOpsTools.get_most_recent_deployment("Raffle", block.chainid);
         addConsumerUsingConfig(mostRecentDeployedContract);
     }
+    
 }
